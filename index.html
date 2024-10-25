@@ -1,0 +1,691 @@
+<html><head><base href="." />
+<title>Gusano vs Ciempiés - Juego de Supervivencia</title>
+<style>
+  * { margin: 0; padding: 0; }
+  body {
+    overflow: hidden;
+    background: #000;
+    font-family: 'Arial', sans-serif;
+  }
+  #gameCanvas {
+    width: 100vw;
+    height: 100vh;
+  }
+  .controls-selector {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0,0,0,0.8);
+    padding: 10px;
+    border-radius: 10px;
+    z-index: 100;
+  }
+  .control-btn {
+    padding: 8px 15px;
+    margin: 0 5px;
+    background: #333;
+    color: #fff;
+    border: 1px solid #fff;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .control-btn.active {
+    background: #fff;
+    color: #000;
+  }
+  .pause-btn {
+    position: fixed;
+    top: 80px; 
+    left: 20px; 
+    padding: 8px 15px;
+    background: #333;
+    color: #fff;
+    border: 1px solid #fff;
+    border-radius: 5px;
+    cursor: pointer;
+    z-index: 100;
+  }
+  .joystick-container {
+    display: none;
+    position: fixed;
+    bottom: 50px;
+    left: 50px;
+    width: 150px;
+    height: 150px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 50%;
+    touch-action: none;
+  }
+  .joystick-knob {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    background: rgba(255,255,255,0.5);
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+  }
+  .health-bar {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    width: 200px;
+    height: 20px;
+    background: rgba(0,0,0,0.5);
+    border: 2px solid #fff;
+    border-radius: 10px;
+  }
+  .health-fill {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #ff0000, #00ff00);
+    border-radius: 8px;
+    transition: width 0.3s;
+  }
+  .game-over {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.9);
+    background: rgba(0,0,0,0.9);
+    color: #fff;
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 0 30px rgba(255,0,0,0.3);
+    border: 2px solid rgba(255,255,255,0.1);
+    animation: gameOverPop 0.5s forwards;
+  }
+  .game-over h2 {
+    font-size: 3em;
+    margin-bottom: 20px;
+    background: linear-gradient(45deg, #ff0000, #ff6b6b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: glowText 2s ease-in-out infinite;
+  }
+  .game-over p {
+    font-size: 1.2em;
+    color: #aaa;
+    margin-bottom: 30px;
+  }
+  .game-over .survival-time {
+    color: #fff;
+    font-size: 1.4em;
+    font-weight: bold;
+  }
+  .game-over .btn-container {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+  }
+  .game-over button {
+    padding: 12px 25px;
+    font-size: 1.1em;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: linear-gradient(45deg, #ff0000, #ff6b6b);
+    color: white;
+    border: 2px solid transparent;
+  }
+  .game-over button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255,0,0,0.5);
+  }
+  .game-over button.menu-return {
+    background: transparent;
+    border: 2px solid #ff6b6b;
+  }
+  @keyframes gameOverPop {
+    0% {
+      transform: translate(-50%, -50%) scale(0.9);
+      opacity: 0;
+    }
+    100% {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+    }
+  }
+  @keyframes glowText {
+    0%, 100% {
+      filter: brightness(1);
+      transform: scale(1);
+    }
+    50% {
+      filter: brightness(1.3);
+      transform: scale(1.05);
+    }
+  }
+  .pause-menu {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.8);
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    z-index: 150;
+  }
+  .pause-menu button {
+    margin: 10px;
+    padding: 10px 20px;
+    background: #333;
+    color: white;
+    border: 1px solid white;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  .main-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    z-index: 1000;
+  }
+  .main-menu h1 {
+    font-size: 5em;
+    background: linear-gradient(45deg, #00ffff, #ff00ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 20px rgba(255,255,255,0.2);
+    animation: glow 2s ease-in-out infinite;
+  }
+  .main-menu p {
+    color: #888;
+    font-size: 1.2em;
+    letter-spacing: 2px;
+  }
+  .menu-btn {
+    padding: 15px 40px;
+    font-size: 1.3em;
+    background: transparent;
+    border: 2px solid #fff;
+    color: #fff;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .menu-btn:hover {
+    background: #fff;
+    color: #000;
+    transform: scale(1.05);
+  }
+  @keyframes glow {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.3); }
+  }
+</style>
+</head>
+<body>
+<div class="controls-selector">
+  <button class="control-btn active" data-control="pc">PC (WASD)</button>
+  <button class="control-btn" data-control="mobile">Mobile</button>
+</div>
+<button class="pause-btn">⏸️ Pause</button>
+<div class="joystick-container">
+  <div class="joystick-knob"></div>
+</div>
+<canvas id="gameCanvas"></canvas>
+<div class="health-bar"><div class="health-fill"></div></div>
+<div class="game-over">
+  <h2>¡Game Over!</h2>
+  <p>Sobreviviste por <span class="survival-time">0</span> segundos</p>
+  <div class="btn-container">
+    <button class="retry-btn">Intentar de nuevo</button>
+    <button class="menu-return">Menú Principal</button>
+  </div>
+</div>
+<div class="pause-menu">
+  <h2 style="color: white;">Game Paused</h2>
+  <button class="resume-btn">Resume Game</button>
+  <button class="return-menu-btn">Return to Main Menu</button>
+</div>
+<div class="main-menu">
+  <h1>WormSlice</h1>
+  <p>By QuarkLCloud Technology™</p>
+  <button class="menu-btn start-btn">PLAY</button>
+  <button class="menu-btn settings-btn">OPTIONS</button>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const healthBar = document.querySelector('.health-fill');
+const gameOverScreen = document.querySelector('.game-over');
+const survivalTimeSpan = document.querySelector('.survival-time');
+const retryBtn = document.querySelector('.retry-btn');
+const joystickContainer = document.querySelector('.joystick-container');
+const joystickKnob = document.querySelector('.joystick-knob');
+const pauseBtn = document.querySelector('.pause-btn');
+const mainMenu = document.querySelector('.main-menu');
+const startBtn = document.querySelector('.start-btn');
+const pauseMenu = document.querySelector('.pause-menu');
+const resumeBtn = document.querySelector('.resume-btn');
+const returnMenuBtn = document.querySelector('.return-menu-btn');
+
+let isPaused = false;
+let gameStarted = false;
+let controlMode = 'pc';
+let joystickData = { x: 0, y: 0 };
+
+document.querySelectorAll('.control-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.control-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    controlMode = btn.dataset.control;
+    joystickContainer.style.display = controlMode === 'mobile' ? 'block' : 'none';
+  });
+});
+
+let joystickActive = false;
+let joystickOrigin = { x: 0, y: 0 };
+
+function handleJoystickStart(e) {
+  joystickActive = true;
+  const touch = e.type === 'mousedown' ? e : e.touches[0];
+  const rect = joystickContainer.getBoundingClientRect();
+  joystickOrigin.x = touch.clientX - rect.left;
+  joystickOrigin.y = touch.clientY - rect.top;
+}
+
+function handleJoystickMove(e) {
+  if (!joystickActive) return;
+  e.preventDefault();
+
+  const touch = e.type === 'mousemove' ? e : e.touches[0];
+  const rect = joystickContainer.getBoundingClientRect();
+  const x = touch.clientX - rect.left;
+  const y = touch.clientY - rect.top;
+
+  const deltaX = x - rect.width/2;
+  const deltaY = y - rect.height/2;
+  const distance = Math.min(75, Math.sqrt(deltaX * deltaX + deltaY * deltaY));
+  const angle = Math.atan2(deltaY, deltaX);
+
+  joystickKnob.style.left = `${rect.width/2 + Math.cos(angle) * distance}px`;
+  joystickKnob.style.top = `${rect.height/2 + Math.sin(angle) * distance}px`;
+
+  joystickData.x = Math.cos(angle) * (distance/75);
+  joystickData.y = Math.sin(angle) * (distance/75);
+}
+
+function handleJoystickEnd() {
+  joystickActive = false;
+  joystickKnob.style.left = '50%';
+  joystickKnob.style.top = '50%';
+  joystickData = { x: 0, y: 0 };
+}
+
+joystickContainer.addEventListener('touchstart', handleJoystickStart);
+joystickContainer.addEventListener('touchmove', handleJoystickMove);
+joystickContainer.addEventListener('touchend', handleJoystickEnd);
+
+joystickContainer.addEventListener('mousedown', handleJoystickStart);
+window.addEventListener('mousemove', handleJoystickMove);
+window.addEventListener('mouseup', handleJoystickEnd);
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+class Worm {
+  constructor() {
+    this.x = canvas.width / 2;
+    this.y = canvas.height / 2;
+    this.radius = 10;
+    this.baseSpeed = 5;
+    this.speed = this.baseSpeed;
+    this.health = 100;
+    this.color = 0;
+    this.trail = [];
+    this.speedBoostTime = 0;
+  }
+
+  takeDamage(amount) {
+    this.health -= amount;
+    healthBar.style.width = `${this.health}%`;
+  }
+
+  update() {
+    this.speed = this.baseSpeed;
+    if (this.speedBoostTime > 0) {
+      this.speed = this.baseSpeed * 2;
+      this.speedBoostTime--;
+    }
+    if (controlMode === 'pc') {
+      if (keys['KeyA']) this.x -= this.speed;
+      if (keys['KeyD']) this.x += this.speed;
+      if (keys['KeyW']) this.y -= this.speed;
+      if (keys['KeyS']) this.y += this.speed;
+    } else {
+      this.x += joystickData.x * this.speed;
+      this.y += joystickData.y * this.speed;
+    }
+
+    this.x = Math.max(this.radius, Math.min(canvas.width - this.radius, this.x));
+    this.y = Math.max(this.radius, Math.min(canvas.height - this.radius, this.y));
+
+    this.color = (this.color + 2) % 360;
+    this.trail.unshift({x: this.x, y: this.y, color: this.color});
+    if (this.trail.length > 20) this.trail.pop();
+  }
+
+  draw() {
+    this.trail.forEach((pos, i) => {
+      const wave = Math.sin(Date.now() * 0.01 + i * 0.5) * 5;
+      ctx.beginPath();
+      ctx.fillStyle = `hsla(${pos.color}, 100%, 50%, ${1 - i/20})`;
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = `hsl(${pos.color}, 100%, 50%)`;
+      ctx.arc(pos.x + wave, pos.y, this.radius * (1 - i/20), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+  }
+}
+
+class Centipede {
+  constructor() {
+    this.segments = [];
+    this.segmentCount = 15;
+    this.baseSpeed = 4; // Increased from 3
+    this.speed = this.baseSpeed;
+    this.speedBoostTime = 0;
+    
+    for(let i = 0; i < this.segmentCount; i++) {
+      this.segments.push({
+        x: -50 - (i * 30),
+        y: canvas.height / 2,
+        angle: 0
+      });
+    }
+  }
+
+  update(targetX, targetY) {
+    this.speed = this.baseSpeed;
+    if (this.speedBoostTime > 0) {
+      this.speed = this.baseSpeed * 1.8;
+      this.speedBoostTime--;
+    }
+    const head = this.segments[0];
+    const dx = targetX - head.x;
+    const dy = targetY - head.y;
+    head.angle = Math.atan2(dy, dx);
+    
+    head.x += Math.cos(head.angle) * this.speed;
+    head.y += Math.sin(head.angle) * this.speed;
+
+    for(let i = 1; i < this.segments.length; i++) {
+      const segment = this.segments[i];
+      const prevSegment = this.segments[i-1];
+      const dx = prevSegment.x - segment.x;
+      const dy = prevSegment.y - segment.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      segment.angle = Math.atan2(dy, dx);
+      
+      if(dist > 30) {
+        segment.x += (dx/dist) * this.speed;
+        segment.y += (dy/dist) * this.speed;
+      }
+    }
+  }
+
+  draw() {
+    ctx.save();
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = '#ff0000';
+    
+    this.segments.forEach((segment, i) => {
+      ctx.beginPath();
+      ctx.fillStyle = '#800000';
+      ctx.arc(segment.x, segment.y, 20, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(segment.x, segment.y, 15, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+    
+    ctx.restore();
+  }
+}
+
+class PowerUp {
+  constructor() {
+    this.x = Math.random() * (canvas.width - 100) + 50;
+    this.y = Math.random() * (canvas.height - 100) + 50;
+    this.radius = 12;
+    this.glow = 0;
+    this.active = true;
+  }
+
+  draw() {
+    if (!this.active) return;
+    
+    this.glow = (this.glow + 0.1) % (Math.PI * 2);
+    
+    ctx.save();
+    ctx.shadowBlur = 25;
+    ctx.shadowColor = '#00ffff';
+    
+    ctx.beginPath();
+    ctx.fillStyle = `rgba(0,255,255,${0.6 + Math.sin(this.glow) * 0.4})`;
+    ctx.arc(this.x, this.y, this.radius + Math.sin(this.glow) * 3, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(this.x - 5, this.y - 8);
+    ctx.lineTo(this.x + 2, this.y);
+    ctx.lineTo(this.x - 2, this.y);
+    ctx.lineTo(this.x + 5, this.y + 8);
+    ctx.stroke();
+    
+    ctx.restore();
+  }
+}
+
+let worm, centipede, fruits, gameLoop, powerUps, startTime, keys = {};
+
+function initGame() {
+  worm = new Worm();
+  centipede = new Centipede();
+  fruits = [];
+  for (let i = 0; i < 5; i++) {
+    fruits.push(new Fruit());
+  }
+  powerUps = [];
+  for (let i = 0; i < 3; i++) {
+    powerUps.push(new PowerUp());
+  }
+  startTime = Date.now();
+  gameStarted = true;
+  
+  mainMenu.style.display = 'none';
+  pauseMenu.style.display = 'none';
+  gameOverScreen.style.display = 'none';
+  
+  animate();
+}
+
+class Fruit {
+  constructor() {
+    this.x = Math.random() * (canvas.width - 100) + 50;
+    this.y = Math.random() * (canvas.height - 100) + 50;
+    this.radius = 8;
+    this.glow = 0;
+  }
+
+  draw() {
+    this.glow = (this.glow + 0.05) % (Math.PI * 2);
+    
+    ctx.save();
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = 'rgba(255,200,0,0.8)';
+    
+    ctx.beginPath();
+    ctx.fillStyle = `rgba(255,200,0,${0.5 + Math.sin(this.glow) * 0.5})`;
+    ctx.arc(this.x, this.y, this.radius + Math.sin(this.glow) * 2, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.restore();
+  }
+}
+
+function drawBackground() {
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  for(let y = 0; y < canvas.height; y += 40) {
+    ctx.beginPath();
+    ctx.strokeStyle = `hsla(${(Date.now()/40 + y) % 360}, 100%, 50%, 0.15)`;
+    ctx.lineWidth = 2;
+    
+    const dy = y - worm.y;
+    const deform = Math.max(0, 1 - Math.abs(dy)/400) * 30;
+    
+    const wave = Math.sin(Date.now()/1000 + y/100) * 15;
+    
+    ctx.moveTo(0, y + deform * Math.sin(Date.now()/600) + wave);
+    ctx.lineTo(canvas.width, y - deform * Math.sin(Date.now()/600) + wave);
+    ctx.stroke();
+  }
+}
+
+function animate() {
+  if (isPaused) return;
+  
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  drawBackground();
+  
+  worm.update();
+  worm.draw();
+  
+  centipede.update(worm.x, worm.y);
+  centipede.draw();
+  
+  centipede.segments.forEach(segment => {
+    const dx = worm.x - segment.x;
+    const dy = worm.y - segment.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (distance < worm.radius + 20) {
+      worm.takeDamage(0.5);
+    }
+  });
+  
+  fruits.forEach((fruit, i) => {
+    fruit.draw();
+    
+    const dx = worm.x - fruit.x;
+    const dy = worm.y - fruit.y;
+    if(Math.sqrt(dx*dx + dy*dy) < worm.radius + fruit.radius) {
+      fruits.splice(i, 1);
+      worm.health = Math.min(100, worm.health + 20);
+      fruits.push(new Fruit());
+    }
+  });
+
+  powerUps.forEach((powerUp, i) => {
+    if (!powerUp.active) return;
+
+    powerUp.draw();
+
+    const dxWorm = worm.x - powerUp.x;
+    const dyWorm = worm.y - powerUp.y;
+    if (Math.sqrt(dxWorm*dxWorm + dyWorm*dyWorm) < worm.radius + powerUp.radius) {
+      powerUp.active = false;
+      worm.speedBoostTime = 180; 
+      setTimeout(() => {
+        powerUps[i] = new PowerUp();
+      }, 5000);
+    }
+
+    const head = centipede.segments[0];
+    const dxCent = head.x - powerUp.x;
+    const dyCent = head.y - powerUp.y;
+    if (Math.sqrt(dxCent*dxCent + dyCent*dyCent) < 20 + powerUp.radius) {
+      powerUp.active = false;
+      centipede.speedBoostTime = 180;
+      setTimeout(() => {
+        powerUps[i] = new PowerUp();
+      }, 5000);
+    }
+  });
+  
+  healthBar.style.width = `${worm.health}%`;
+
+  if(worm.health <= 0) {
+    gameOver();
+    return;
+  }
+
+  gameLoop = requestAnimationFrame(animate);
+}
+
+function gameOver() {
+  cancelAnimationFrame(gameLoop);
+  const finalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+  
+  setTimeout(() => {
+    gameOverScreen.style.display = 'block';
+    survivalTimeSpan.textContent = finalTime;
+  }, 500);
+}
+
+pauseBtn.addEventListener('click', () => {
+  isPaused = !isPaused;
+  pauseMenu.style.display = isPaused ? 'block' : 'none';
+  if (!isPaused) animate();
+});
+resumeBtn.addEventListener('click', () => {
+  isPaused = false;
+  pauseMenu.style.display = 'none';
+  animate();
+});
+returnMenuBtn.addEventListener('click', () => {
+  isPaused = false;
+  pauseMenu.style.display = 'none';
+  mainMenu.style.display = 'flex';
+});
+startBtn.addEventListener('click', () => {
+  initGame();
+});
+window.addEventListener('keydown', e => keys[e.code] = true);
+window.addEventListener('keyup', e => keys[e.code] = false);
+retryBtn.addEventListener('click', initGame);
+document.querySelector('.menu-return').addEventListener('click', () => {
+  gameOverScreen.style.display = 'none';
+  mainMenu.style.display = 'flex';
+  cancelAnimationFrame(gameLoop);
+});
+window.addEventListener('resize', () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
+
+initGame();
+</script>
+</body>
+</html>
